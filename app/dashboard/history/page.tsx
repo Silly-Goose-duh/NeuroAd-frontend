@@ -3,27 +3,35 @@
 import Link from "next/link";
 import { CAMPAIGNS } from "@/lib/fixtures";
 
+/* Four items, so this stays a row list. A hairline between rows is scannable
+   here; separate cards would add chrome without adding information. */
+
 export default function HistoryPage() {
   return (
-    <div className="grid gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Campaign History</h1>
-        <p className="mt-2 text-sm text-cream/60">Sample history. NMFM has not scored a real file.</p>
+    <div className="flex min-h-full min-w-0 flex-col gap-8">
+      <div className="min-w-0">
+        <h1 className="break-words text-[26px] font-semibold tracking-tight text-cream">
+          Campaign History
+        </h1>
+        <p className="sample-flag mt-2">Sample history. NMFM has not scored a real file.</p>
       </div>
-      <div className="overflow-hidden rounded-2xl border border-cream/10">
-        {CAMPAIGNS.map((campaign) => (
+
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[16px] border border-line bg-raised">
+        {CAMPAIGNS.map((campaign, index) => (
           <Link
             key={campaign.id}
             href="/dashboard/run"
-            className="grid grid-cols-[1fr_auto] items-center gap-4 border-b border-cream/10 bg-ink px-4 py-4 last:border-b-0"
+            className={`flex min-h-16 min-w-0 flex-1 items-center justify-between gap-4 px-4 py-4 ${
+              index > 0 ? "border-t border-line" : ""
+            }`}
           >
-            <div>
-              <p className="font-medium">{campaign.name}</p>
-              <p className="text-xs text-cream/50">
-                {campaign.platform} · {campaign.objective} · {campaign.when}
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-cream">{campaign.name}</p>
+              <p className="truncate text-xs text-ink-3">
+                {campaign.platform} / {campaign.objective} / {campaign.when}
               </p>
             </div>
-            <p className="text-2xl font-semibold tabular-nums text-gold">{campaign.score}</p>
+            <p className="shrink-0 text-xl font-semibold tabular-nums text-gold">{campaign.score}</p>
           </Link>
         ))}
       </div>

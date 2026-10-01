@@ -2,6 +2,7 @@
 
 import { Canvas, useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
+import { useReducedMotion } from "framer-motion";
 import * as THREE from "three";
 
 function makeSphere(count: number, radius: number, squash: number) {
@@ -11,7 +12,7 @@ function makeSphere(count: number, radius: number, squash: number) {
     const theta = Math.random() * Math.PI * 2;
     const phi = Math.acos(2 * Math.random() - 1);
     arr[i * 3] = r * Math.sin(phi) * Math.cos(theta);
-    arr[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta) * squash;
+    arr[i * 3 + 1] = r * Math.sin(phi) * squash;
     arr[i * 3 + 2] = r * Math.cos(phi);
   }
   return arr;
@@ -19,6 +20,8 @@ function makeSphere(count: number, radius: number, squash: number) {
 
 function Cloud() {
   const group = useRef<THREE.Group>(null);
+  const reduce = useReducedMotion();
+
   const goldGeom = useMemo(() => {
     const g = new THREE.BufferGeometry();
     g.setAttribute("position", new THREE.BufferAttribute(makeSphere(1600, 1.75, 0.76), 3));
@@ -32,6 +35,13 @@ function Cloud() {
 
   useFrame(({ clock, pointer }) => {
     if (!group.current) return;
+    // Under prefers-reduced-motion the scene holds a fixed pose. The particle
+    // field still renders, it simply stops moving.
+    if (reduce) {
+      group.current.rotation.y = -0.35;
+      group.current.rotation.x = 0.12;
+      return;
+    }
     const t = clock.elapsedTime;
     group.current.rotation.y = t * 0.08 + pointer.x * 0.4;
     group.current.rotation.x = Math.sin(t * 0.2) * 0.08 + pointer.y * 0.2;
@@ -73,7 +83,7 @@ function Cloud() {
 
 export function NeuralScene({ className = "h-full w-full" }: { className?: string }) {
   return (
-    <div className={className}>
+    <div className={className} aria-hidden="true">
       <Canvas
         camera={{ position: [0, 0.1, 4.5], fov: 46 }}
         dpr={[1, 1.5]}

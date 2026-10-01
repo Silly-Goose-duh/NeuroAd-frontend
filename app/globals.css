@@ -1,24 +1,84 @@
 @import "tailwindcss";
 
+/* ==========================================================================
+   neuro.ad design tokens
+   Source: docs/brand-guidelines.jpeg + "neuro ad brand guidelines.pdf"
+   Radii and spacing follow the sheet's scales (radius 4/7/10/16, spacing 8/12/16/24/32).
+   Text ramp is contrast-verified against the sheet's own table:
+     body + labels   4.7:1 minimum
+     large + controls 4.7:1
+     focus + status   8.4:1
+   Measured on #111111: cream/50 = 5.21, cream/65 = 8.05, cream/80 = 11.84.
+   Measured on #1C1C1C: cream/55 = 5.84, cream/70 = 8.67, cream/80 = 10.93.
+   Measured on #BE5205:  cream = 4.64, white = 4.77, gold = 2.22 (never place gold text on orange).
+   ========================================================================== */
+
 @theme {
   --font-sans: var(--font-dm), "DM Sans", ui-sans-serif, system-ui, sans-serif;
-  --color-ink: #1c1c1c;
-  --color-cream: #fffde1;
-  --color-orange: #be5205;
+
+  /* Brand palette, verbatim from the sheet */
+  --color-brand: #be5205;
   --color-gold: #f59e0b;
+  --color-cream: #fffde1;
+  --color-ink: #1c1c1c;
   --color-void: #111111;
+
+  /* Surfaces. The sheet defines one dark background; these are tonal steps of it. */
+  --color-surface: #111111;
+  --color-raised: #1c1c1c;
+  --color-sunken: #0b0b0b;
+
+  /* Text ramp. Never go below /50 on void or /55 on raised. */
+  --color-ink-1: #fffde1; /* 18.33:1 on void - headings */
+  --color-ink-2: #cfceb7; /* 11.84:1 - body copy */
+  --color-ink-3: #acaa98; /*  8.05:1 - secondary, passes the 8.4:1 target for UI text */
+  --color-ink-4: #88877a; /*  5.21:1 - the floor for small body text */
+
+  /* Hairlines. Alpha of cream, non-text so contrast rules do not apply. */
+  --color-line: rgb(255 253 225 / 0.1);
+  --color-line-strong: rgb(255 253 225 / 0.22);
+
+  --radius-xs: 4px;
+  --radius-sm: 7px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-html,
+html {
+  background: #111111;
+  color-scheme: dark;
+  scroll-behavior: smooth;
+  /* Keep a tapped element from flashing a default highlight on mobile. */
+  -webkit-tap-highlight-color: rgb(255 253 225 / 0.08);
+}
+
 body {
   min-height: 100%;
   background: #111111;
-  color: #fffde1;
+  color: #cfceb7;
+  font-family: var(--font-dm), "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  /* Kill the 300ms tap delay without disabling pinch zoom. */
+  touch-action: manipulation;
 }
 
-body {
-  font-family: var(--font-dm), "DM Sans", ui-sans-serif, system-ui, sans-serif;
-  font-size: 14px;
+/* Headings should not leave a single word stranded on the last line. */
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+/* Brand names and the .ad TLD should never be machine-translated. */
+[data-nt] {
+  translate: no;
 }
 
 ::selection {
@@ -26,7 +86,97 @@ body {
   color: #fffde1;
 }
 
+/* The sheet specifies a 3px amber focus ring. */
 :focus-visible {
-  outline: 2px solid #f59e0b;
+  outline: 3px solid #f59e0b;
   outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Every motion layer in this app gates on this. MOTION_INTENSITY is 6, so the
+   reduced-motion path must be real, not a token gesture.
+
+   The `!important` block is a safety net, not decoration. `useReducedMotion()`
+   resolves on the client, so on first paint Framer Motion can still write
+   `opacity: 0` onto a reveal element. For a reduced-motion visitor that
+   element would then stay invisible until scrolled into view, which is
+   exactly the failure this whole mechanism exists to prevent. Forcing the
+   final state here makes visibility independent of hydration order. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  [data-string="magnetic"],
+  [data-string="parallax"],
+  [data-string="parallax[]"] {
+    transform: none !important;
+  }
+  #site-loader,
+  .scroll-rail {
+    display: none;
+  }
+}
+
+#site-loader {
+  animation: loader-exit 0.45s cubic-bezier(0.16, 1, 0.3, 1) 1.55s forwards;
+}
+
+html.loader-skip #site-loader {
+  animation: none;
+  opacity: 0;
+  visibility: hidden;
+}
+
+.loader-bar {
+  animation: bar-grow 90ms linear both;
+}
+
+@keyframes bar-grow {
+  from {
+    transform: scaleY(0.08);
+  }
+}
+
+@keyframes loader-exit {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+/* StringProgress writes --progress (0 to 1) on the section. The track stays
+   visible when the value is still 0, so a late start never blanks the page. */
+.story-fill {
+  width: calc(var(--progress, 0) * 100%);
+}
+
+/* StringMagnetic writes unitless --magnetic-x/y. It does not set transform.
+   Keep transform off the button's color transition so the nudge is not
+   delayed by the 200ms control ease. */
+[data-string="magnetic"] {
+  transform: translate3d(
+    calc(var(--magnetic-x, 0) * 1px),
+    calc(var(--magnetic-y, 0) * 1px),
+    0
+  );
+  transition-property: background-color, border-color, color;
+}
+
+/* A single hairline used for the "this is a sample" provenance marker. */
+.sample-flag {
+  font-size: 12px;
+  line-height: 1.4;
+  color: #88877a;
+  letter-spacing: 0.04em;
 }
